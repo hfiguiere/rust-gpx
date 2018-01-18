@@ -6,6 +6,8 @@ use std::iter::Peekable;
 use xml::reader::Events;
 use xml::reader::XmlEvent;
 
+use parser::bounds;
+use parser::time;
 use parser::track;
 use parser::metadata;
 use parser::waypoint;
@@ -13,7 +15,9 @@ use parser::waypoint;
 use Gpx;
 
 enum ParseEvent {
+    StartBounds,
     StartMetadata,
+    StartTime,
     StartTrack,
     StartWaypoint,
     Ignore,
@@ -37,6 +41,8 @@ pub fn consume<R: Read>(reader: &mut Peekable<Events<R>>) -> Result<Gpx> {
                             "trk" => Ok(ParseEvent::StartTrack),
                             "wpt" => Ok(ParseEvent::StartWaypoint),
                             "gpx" => Ok(ParseEvent::Ignore),
+                            "time" => Ok(ParseEvent::StartTime),
+                            "bounds" => Ok(ParseEvent::StartBounds),
                             _ => Err(Error::from(ErrorKind::InvalidChildElement("gpx")))?,
                         }
                     }
@@ -57,8 +63,16 @@ pub fn consume<R: Read>(reader: &mut Peekable<Events<R>>) -> Result<Gpx> {
                 reader.next();
             }
 
+            ParseEvent::StartBounds => {
+                bounds::consume(reader)?;
+            }
+
             ParseEvent::StartMetadata => {
                 gpx.metadata = Some(metadata::consume(reader)?);
+            }
+
+            ParseEvent::StartTime => {
+                time::consume(reader)?;
             }
 
             ParseEvent::StartTrack => {
@@ -100,6 +114,8 @@ mod tests {
         let gpx = consume!(
             "
             <gpx>
+                <time>2016-03-27T18:57:55Z</time>
+                <bounds minlat=\"45.487064362\" minlon=\"-74.031837463\" maxlat=\"45.701225281\" maxlon=\"-73.586273193\"></bounds>
                 <trk></trk>
                 <wpt lat=\"1.23\" lon=\"2.34\"></wpt>
                 <wpt lon=\"10.256\" lat=\"-81.324\">
