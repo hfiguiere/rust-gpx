@@ -23,6 +23,7 @@ pub fn consume<R: Read>(reader: &mut Peekable<Events<R>>) -> Result<Waypoint> {
     // Here we hold all members of a waypoint, just outside of the struct.
     let mut point: Option<Point<f64>> = None;
     let mut elevation: Option<f64> = None;
+    let mut speed: Option<f64> = None;
     let mut time: Option<DateTime<Utc>> = None;
     let mut wptname: Option<String> = None;
     let mut comment: Option<String> = None;
@@ -73,6 +74,12 @@ pub fn consume<R: Read>(reader: &mut Peekable<Events<R>>) -> Result<Waypoint> {
                         // Cast the elevation to an f64, from a string.
                         elevation = Some(string::consume(reader)?.parse().chain_err(
                             || "error while casting elevation to f64",
+                        )?)
+                    }
+                    "speed" => {
+                        // Cast the speed to an f64, from a string.
+                        speed = Some(string::consume(reader)?.parse().chain_err(
+                            || "error while casting speed to f64",
                         )?)
                     }
                     "time" => time = Some(time::consume(reader)?),
@@ -178,6 +185,7 @@ mod tests {
                 <fix>dgps</fix>
                 <sat>4</sat>
                 <hdop>6.058</hdop>
+                <speed>0.0000</speed>
             </wpt>
             "
         );
